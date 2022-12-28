@@ -1,0 +1,175 @@
+////// Souffle grammar, adapted from souffle-lang.github.io
+// Intentionally looser than the Souffle compiler's parser, to also allow parsing of transformed-datalog output by the compiler.
+// NOTE: Input must be preprocessed using GNU cpp.
+
+// top level stuff
+
+program: program_element*
+
+?program_element: pragma | functor_decl | component_element
+
+// program elements that can be in a component
+?component_element: component_decl
+                  | component_init
+                  | directive
+                  | rule
+                  | fact
+                  | relation_decl
+                  | type_decl
+                  | linemarker
+
+
+////// program elements
+
+
+// facts and rules
+
+fact: atom "."
+
+rule:   atom ( "," atom )* ":-" disjunction "." query_plan?
+      | atom "<=" atom ":-" disjunction "." query_plan?
+
+atom: qualified_name "(" ( argument ( "," argument )* )? ")"
+
+// declarations
+
+relation_decl: ".decl" qualified_name ( "," IDENT )* "(" ( attribute ( "," attribute )* )? ")" ( "override" | "inline" | "no_inline" | "magic" | "no_magic" | "brie" | "btree" | "eqrel" | "overridable" )* choice_domain
+
+type_decl: ".type" qualified_name ("<:" typename | "=" ( typename ( "|" typename )* | record_list | adt_branch ( "|" adt_branch )* ))
+
+functor_decl: ".functor" IDENT "(" ( attribute_or_typename ( "," attribute_or_typename )* )? ")" ":" typename "stateful"?
+
+////// building blocks
+
+disjunction: conjunction ( ";" conjunction )*
+
+conjunction: "!"* ( atom | constraint | "(" disjunction ")" ) ( "," "!"* ( atom | constraint | "(" disjunction ")" ) )*
+
+query_plan: ".plan" NUMBER ":" "(" ( NUMBER ( "," NUMBER )* )? ")" ( "," NUMBER ":" "(" ( NUMBER ( "," NUMBER )* )? ")" )*
+
+constraint: argument ( "<" | ">" | "<=" | ">=" | "=" | "!=" ) argument
+           | ( "match" | "contains" ) "(" argument "," argument ")"
+           | "true"
+           | "false"
+
+
+argument_list: ( argument ( "," argument )* )?
+
+
+choice_domain: ( "choice-domain" ( IDENT | "(" IDENT ( "," IDENT )* ")" ) ( "," ( IDENT | "(" IDENT ( "," IDENT )* ")" ) )* )?
+
+
+record_list: "[" attribute ( "," attribute)* "]"
+
+adt_branch: qualified_name "{" (attribute ( "," attribute)*)? "}"
+
+////// fundamental
+
+argument: constant
+        | variable
+        | "nil"
+        | "[" argument_list "]"
+        | "$" qualified_name ( "(" argument_list ")" )?
+        | "(" argument ")"
+        | "as" "(" argument "," typename ")"
+        | ( userdef_functor | intrinsic_functor ) "(" argument_list ")"
+        | aggregator
+        | ( unary_operation | argument binary_operation ) argument
+
+
+// constants, variables
+
+constant: STRING | NUMBER | UNSIGNED | FLOAT
+
+variable: IDENT | "_"
+
+// functors
+
+userdef_functor: "@" IDENT
+
+intrinsic_functor: "ord" | "to_float" | "to_number" | "to_string" | "to_unsigned" | "cat" | "strlen" | "substr" | "autoinc" | "min"
+
+// operations
+
+unary_operation: "-" | "bnot" | "lnot"
+
+binary_operation: "+" | "-" | "*" | "/" | "%" | "^" | "**" | "land" | "lor" | "lxor" | "band" | "bor" | "bxor" | "bshl" | "bshr" | "bshru"
+
+
+aggregator: (( ( "max" | "mean" | "min" | "sum" ) argument | "count" ) ":" ( "{" disjunction "}" | atom ))
+          | "range" "(" argument "," argument ("," argument)? ")"
+
+
+// basic building blocks
+
+?attribute_or_typename: attribute | ":"? typename
+
+attribute: IDENT ":" typename
+
+qualified_name: IDENT ( "." IDENT )*
+
+?typename: "number" -> number
+        | "symbol" -> symbol
+        | "unsigned" -> unsigned
+        | "float" -> float
+        | qualified_name
+
+////// directives
+
+directive: directive_qualifier qualified_name ( "," qualified_name )* ( "(" ( DIRECTIVE_IDENT "=" directive_value ( "," DIRECTIVE_IDENT "=" directive_value )* )? ")" )?
+
+directive_qualifier : ".input" | ".output" | ".printsize" | ".limitsize"
+
+directive_value: STRING | IDENT | NUMBER | "true" | "false" | "\"" json "\""
+
+////// components
+
+component_decl: ".comp" component_type ( ( ":" | "," ) component_type )* "{" ( component_element | ".override" IDENT )* "}"
+
+component_init: ".init" IDENT "=" component_type
+
+component_type: IDENT ( "<" IDENT ( "," IDENT )* ">" )?
+
+////// misc.
+
+pragma: ".pragma" STRING STRING?
+
+// preprocessor output
+
+linemarker: "#" NUMBER STRING NUMBER*
+
+/// json parser. Some fields are given in json.
+
+?json: object
+       | array
+       | STRING             -> string
+       | NUMBER             -> number
+       | "true"             -> true
+       | "false"            -> false
+       | "null"             -> null
+
+array: "[" [json ("," json)*] "]"
+
+object: "{" [pair ("," pair)*] "}"
+
+pair: STRING ":" json
+
+////// tokens
+
+// a few directives have -
+DIRECTIVE_IDENT: /[a-zA-Z_][a-zA-Z0-9-_]*/
+
+IDENT: /[a-zA-Z_+][a-zA-Z0-9_]*/
+
+%import common.INT -> UNSIGNED
+%import common.SIGNED_INT -> NUMBER
+%import common.SIGNED_FLOAT -> FLOAT
+%import common.ESCAPED_STRING -> STRING
+
+%import common.WS
+%import common.CPP_COMMENT
+%import common.C_COMMENT
+
+%ignore WS
+%ignore CPP_COMMENT
+%ignore C_COMMENT
