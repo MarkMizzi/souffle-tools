@@ -48,7 +48,7 @@ exit_stmt: "EXIT" ram_cond
 
 ?ram_stmt: declare_stmt | forloop | if_stmt | insert_stmt | unpack_stmt
 
-declare_stmt: tuple_element_ref "=" aggregator "FOR" "ALL" IDENT "IN" ram_relname ram_stmt
+declare_stmt: tuple_element_ref "=" AGGREGATOR "FOR" "ALL" IDENT "IN" ram_relname ram_stmt
 
 forloop: "FOR" IDENT "IN" ram_relname on_index? ram_stmt
 
@@ -84,7 +84,7 @@ exists_cond: "EXISTS" IDENT "IN" ram_relname
 
 isempty_cond: "ISEMPTY" "(" ram_relname ")"
 
-comparision: tuple_element comparator tuple_element
+comparision: tuple_element COMPARATOR tuple_element
 
 bracketed_cond: "(" ram_cond ")"
 
@@ -105,7 +105,7 @@ sub_tuple_element: tuple_element "-" atomic_tuple_element
                       | bracketed_tuple_element
                       | record_tuple_element
 
-functor_call: ( userdef_functor | intrinsic_functor ) "(" tuple_element ("," tuple_element)* ")"
+functor_call: ( userdef_functor | INTRINSIC_FUNCTOR ) "(" tuple_element ("," tuple_element)* ")"
 
 bracketed_tuple_element: "(" tuple_element ")"
 
@@ -117,20 +117,6 @@ tuple_element_literal: "string" "(" STRING ")"
 
 ram_relname: RELKIND? qualified_name
 
-// NOTE: Not sure not equals is correct
-?comparator: "<=" -> le
-             | ">=" -> ge
-             | "<" -> less
-             | ">" -> greater
-             | "=" -> eq
-             | "!=" -> neq
-
-?aggregator: "max" -> max
-            | "mean" -> mean
-            | "min" -> min
-            | "sum" -> sum
-            | "count" -> count
-
 /// main
 
 main: "BEGIN MAIN" call* "END MAIN"
@@ -140,8 +126,6 @@ main: "BEGIN MAIN" call* "END MAIN"
 /// building blocks
 
 userdef_functor: "@" qualified_name
-
-intrinsic_functor: "ord" | "to_float" | "to_number" | "to_string" | "to_unsigned" | "cat" | "strlen" | "substr" | "autoinc" | "min"
 
 tuple_element_ref: IDENT "." UNSIGNED
 
@@ -169,6 +153,9 @@ pair: EMBEDDED_STRING ":" json
 
 /// tokens
 
+INTRINSIC_FUNCTOR: "ord" | "to_float" | "to_number" | "to_string" | "to_unsigned" | "cat" | "strlen" | "substr" | "autoinc" | "min"
+
+
 EMBEDDED_STRING: /\\\"[^"]*\\\"/
 
 IO_OPT_NAME: "IO"
@@ -182,6 +169,20 @@ IO_OPT_NAME: "IO"
              | "operation"
              | "params"
              | "types"
+
+// NOTE: Not sure not equals is correct
+COMPARATOR: "<="
+             | ">="
+             | "<"
+             | ">"
+             | "="
+             | "!="
+
+AGGREGATOR: "max"
+            | "mean"
+            | "min"
+            | "sum"
+            | "count"
 
 UNDEF: /UNDEF/
 
