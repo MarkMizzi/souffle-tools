@@ -17,14 +17,25 @@ class PlanNode:
     seperator: str = ""
     trailer: Optional[str] = None
 
-    def __str__(self, prefix="") -> str:
+    def __str__(self, prefix="", debug: bool = False) -> str:
+        debug_info = ""
+        if debug and self.debug_info:
+            # HACK: We need to do this because of the weird format used by the souffle compiler.
+            res = {}
+            exec(f"x = {self.debug_info}", {}, res)
+            debug_info = res["x"].replace("\n", f"\n{prefix}")
+            debug_info = f"{prefix}---------------\n{prefix}{debug_info}\n{prefix}---------------\n"
+
         return (
-            prefix
+            debug_info
+            + prefix
             + self.text
             + "\n"
             + f"{self.seperator}\n".join(
                 map(
-                    lambda x: x.__str__(prefix=prefix + "   ").removesuffix("\n"),
+                    lambda x: x.__str__(
+                        prefix=prefix + "   ", debug=debug
+                    ).removesuffix("\n"),
                     self.children,
                 )
             )
@@ -314,16 +325,10 @@ class TextualPlanVisitor(Interpreter):
         return list(map(self.visit, tree.children))
 
     def pair(self, tree):
-        x = ""
-        # HACK: We have to do this because of the weird format used in the RAM output.
-        exec(f"x = {tree.children[0]}")
-        return (x, self.visit(tree.children[1]))
+        return (str(tree.children[0]), self.visit(tree.children[1]))
 
     def string(self, tree):
-        x = ""
-        # HACK: We have to do this because of the weird format used in the RAM output.
-        exec(f"x = {tree.children[0]}")
-        return x
+        return str(tree.children[0])
 
     def number(self, tree):
         return int(tree.children[0])

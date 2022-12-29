@@ -62,7 +62,7 @@ def indexes(file: str):
 
 
 @app.command()
-def explain(file: str):
+def explain(file: str, add_rules: bool = False):
     """
     Generate a textual plan for the given program.
     """
@@ -77,7 +77,7 @@ def explain(file: str):
     simplified_ram_ast = simplifier.transform(ram_ast)
 
     plan_visitor = TextualPlanVisitor(rels=relvisitor.rels)
-    print(plan_visitor.visit(simplified_ram_ast))
+    print(plan_visitor.visit(simplified_ram_ast).__str__(debug=add_rules))
 
 
 app()
