@@ -93,7 +93,7 @@ class TextualPlanVisitor(Interpreter):
 
     def swap_stmt(self, tree):
         rel1, rel2 = self.visit_children(tree)
-        return PlanNode(f"{rel1}, {rel2} = {rel2}, {rel1}", [])
+        return PlanNode(f"SWAP {rel1}, {rel2}", [])
 
     def exit_stmt(self, tree):
         return PlanNode(f"BREAK {self.visit(tree.children[0])}", [])
@@ -196,7 +196,7 @@ class TextualPlanVisitor(Interpreter):
         tuple_expr = self.visit(tree.children[0])
         ram_relname = self.visit(tree.children[1])
 
-        self._plan.text = f"{ram_relname} = {ram_relname} ∪ {{{tuple_expr} | "
+        self._plan.text = f"{ram_relname} ∪= {{{tuple_expr}"
         self._plan.trailer = "}"
 
         plan = self._plan
