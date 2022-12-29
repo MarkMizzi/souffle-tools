@@ -33,7 +33,7 @@ atom: qualified_name "(" ( argument ( "," argument )* )? ")"
 
 // declarations
 
-relation_decl: ".decl" qualified_name ( "," IDENT )* "(" ( attribute ( "," attribute )* )? ")" ( "override" | "inline" | "no_inline" | "magic" | "no_magic" | "brie" | "btree" | "eqrel" | "overridable" )* choice_domain
+relation_decl: ".decl" qualified_name ( "," IDENT )* "(" ( attribute ( "," attribute )* )? ")" ( "override" | "inline" | "no_inline" | "magic" | "no_magic" | "brie" | "btree" | "eqrel" | "overridable" | "btree_delete" )* choice_domain
 
 type_decl: ".type" qualified_name ("<:" typename | "=" ( typename ( "|" typename )* | record_list | adt_branch ( "|" adt_branch )* ))
 

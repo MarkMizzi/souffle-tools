@@ -205,6 +205,21 @@ class TextualPlanVisitor(Interpreter):
         self._plan = None
         return plan
 
+    def erase_stmt(self, tree):
+        assert self._plan is not None
+
+        tuple_expr = self.visit(tree.children[0])
+        ram_relname = self.visit(tree.children[1])
+
+        self._plan.text = f"{ram_relname} /= {{{tuple_expr}"
+        self._plan.trailer = "}"
+
+        plan = self._plan
+
+        # ... and we don't need this: other part of the non-local HACK.
+        self._plan = None
+        return plan
+
     def on_index(self, tree):
         return self.visit(tree.children[0])
 
@@ -305,6 +320,10 @@ class TextualPlanVisitor(Interpreter):
                 prefix = "Δ[i+1]"
             elif relkind == "@delta_":
                 prefix = "Δ[i]"
+            elif relkind == "@delete_":
+                prefix = "@delete_"
+            elif relkind == "@reject_":
+                prefix = "@reject_"
         return f"{prefix}{relname}"
 
     ### Building blocks
