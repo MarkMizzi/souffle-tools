@@ -14,18 +14,21 @@ class PlanNode:
     text: str
     children: List["PlanNode"]
     debug_info: Optional[str] = None
-    seperator: str = "\n"  # seperator character... use it in __str__
-    trailer: Optional[str] = None  # trailer after children... use it in __str__
+    seperator: str = ""
+    trailer: Optional[str] = None
 
     def __str__(self, prefix="") -> str:
         return (
             prefix
             + self.text
             + "\n"
-            + self.seperator.join(
-                map(lambda x: x.__str__(prefix=prefix + "   "), self.children)
+            + f"{self.seperator}\n".join(
+                map(
+                    lambda x: x.__str__(prefix=prefix + "   ").removesuffix("\n"),
+                    self.children,
+                )
             )
-            + (f"\n{self.trailer}" if self.trailer is not None else "")
+            + (f"\n{prefix}{self.trailer}" if self.trailer is not None else "")
         )
 
 
@@ -43,19 +46,26 @@ class TextualPlanVisitor(Interpreter):
             return str(tree)
 
     def program(self, tree) -> PlanNode:
-        return PlanNode("PROGRAM", list(map(self.visit, tree.children[1:-1])))
+        def extract_stratum_number(stratum_plan_node: PlanNode) -> int:
+            # bit of a HACK: depends on stratum names used by the souffle compiler.
+            return int(stratum_plan_node.text.split("_")[1])
+
+        return PlanNode(
+            "PROGRAM",
+            sorted(map(self.visit, tree.children[1:-1]), key=extract_stratum_number),
+        )
 
     def subroutine(self, tree) -> PlanNode:
         return PlanNode(
             str(tree.children[0]),
             list(map(self.visit, tree.children[1:])),
-            seperator=";\n",
+            seperator=";",
         )
 
     ### Subroutine statements
 
     def loop_stmt(self, tree):
-        return PlanNode("FOR i : ℕ", list(map(self.visit, tree.children[1:])))
+        return PlanNode("FOR i ∈ ℕ", list(map(self.visit, tree.children[1:])))
 
     def query_stmt(self, tree):
         # HACK: Things get non-local here. We expect the leaf that becomes root of self._plan to clean up after us.
@@ -83,9 +93,9 @@ class TextualPlanVisitor(Interpreter):
 
         operation: str
         if io_options["operation"] == "input":
-            operation = "Input from "
+            operation = "INPUT FROM"
         elif io_options["operation"] == "output":
-            operation = "Output to "
+            operation = "OUTPUT TO"
         else:
             raise RuntimeError(f"Unrecognized IO operation {io_options['operation']}")
 
@@ -130,10 +140,10 @@ class TextualPlanVisitor(Interpreter):
         # add index condition, if there is one.
         cond = ""
         if has_child(tree, "on_index"):
-            cond = self.visit(tree.children[2])
+            cond = f" if {self.visit(tree.children[2])}"
 
         self._plan.children.append(
-            PlanNode(f"{tuple_name} ∈ {ram_relname}, {cond}", [])
+            PlanNode(f"for {tuple_name} ∈ {ram_relname}{cond}", [])
         )
 
         plan = self.visit(tree.children[-1])
@@ -152,9 +162,9 @@ class TextualPlanVisitor(Interpreter):
             # add index condition, if there is one.
             index_cond = ""
             if has_child(tree, "on_index"):
-                index_cond = f" USING INDEX {self.visit(tree.children[1])}"
+                index_cond = f" using index {self.visit(tree.children[1])}"
 
-            self._plan.children.append(PlanNode(f"{if_cond}{index_cond}", []))
+            self._plan.children.append(PlanNode(f"if {if_cond}{index_cond}", []))
 
         return self.visit(tree.children[-1])
 
@@ -176,7 +186,6 @@ class TextualPlanVisitor(Interpreter):
         ram_relname = self.visit(tree.children[1])
 
         self._plan.text = f"{ram_relname} = {ram_relname} ∪ {{{tuple_expr} | "
-        self._seperator = ",\n"
         self._plan.trailer = "}"
 
         plan = self._plan
