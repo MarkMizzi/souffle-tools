@@ -199,7 +199,6 @@ class TextualPlanVisitor(Interpreter):
 
     ### RAM conditions
 
-    # TODO: Everything from ram_cond down. Don't forget to use self.rels for resolving tuple elements.
     def ram_cond(self, tree):
         def is_complex(tree: lark.tree.Tree):
             return len(tree.children) > 0

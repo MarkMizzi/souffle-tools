@@ -2,6 +2,7 @@ from typing import List
 
 import typer
 
+from .visitors.ram_simplify import RAMSimplifier
 from .visitors.ram_plan import TextualPlanVisitor
 from .visitors.indexes import IndexVisitor
 from .visitors.relations import RelationVisitor
@@ -72,8 +73,11 @@ def explain(file: str):
     relvisitor = RelationVisitor()
     relvisitor.visit(souffle_ast)
 
+    simplifier = RAMSimplifier()
+    simplified_ram_ast = simplifier.transform(ram_ast)
+
     plan_visitor = TextualPlanVisitor(rels=relvisitor.rels)
-    print(plan_visitor.visit(ram_ast))
+    print(plan_visitor.visit(simplified_ram_ast))
 
 
 app()
