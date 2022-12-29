@@ -253,7 +253,7 @@ class TextualPlanVisitor(Interpreter):
         return " - ".join(self.visit_children(tree))
 
     def undef(self, _):
-        return "UNDEFINED"
+        return "⊥"
 
     def tuple_element_literal(self, tree):
         return str(tree.children[0])
