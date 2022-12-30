@@ -2,8 +2,8 @@ from typing import List
 
 import typer
 
+from .visitors.ram_py_plan import PyPlanVisitor
 from .visitors.ram_simplify import RAMSimplifier
-from .visitors.ram_plan import TextualPlanVisitor
 from .visitors.indexes import IndexVisitor
 from .visitors.relations import RelationVisitor
 from .parsers import ram, souffle
@@ -62,9 +62,9 @@ def indexes(file: str):
 
 
 @app.command()
-def explain(file: str, add_rules: bool = False):
+def explain(file: str):
     """
-    Generate a textual plan for the given program.
+    Generate a (non-functional) Python-like program from the compiler's RAM representation.
     """
 
     souffle_ast = souffle.parse(file, use_transformed=True)
@@ -76,8 +76,8 @@ def explain(file: str, add_rules: bool = False):
     simplifier = RAMSimplifier()
     simplified_ram_ast = simplifier.transform(ram_ast)
 
-    plan_visitor = TextualPlanVisitor(rels=relvisitor.rels)
-    print(plan_visitor.visit(simplified_ram_ast).__str__(debug=add_rules))
+    plan_visitor = PyPlanVisitor(rels=relvisitor.rels)
+    print(plan_visitor.visit(simplified_ram_ast))
 
 
 app()
