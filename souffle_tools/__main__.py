@@ -2,7 +2,7 @@ from typing import List
 
 import typer
 
-from .visitors.ram_py_plan import PyPlanVisitor
+from .visitors.plan import PyPlanVisitor
 from .visitors.ram_simplify import RAMSimplifier
 from .visitors.indexes import IndexVisitor
 from .visitors.relations import RelationVisitor

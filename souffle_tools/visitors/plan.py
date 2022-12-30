@@ -157,7 +157,7 @@ class PyPlanVisitor(Interpreter):
 
         # add index condition, if there is one.
         if has_child(tree, "on_index"):
-            if_cond += f" and index_scan(lambda : {self.visit(tree.children[1])})"
+            if_cond += f" and index_cond(lambda : {self.visit(tree.children[1])})"
 
         if_cond += ":"
 
@@ -233,7 +233,13 @@ class PyPlanVisitor(Interpreter):
         return " in ".join(self.visit_children(tree))
 
     def exists_cond(self, tree):
-        return "∃" + str(tree.children[0]) + " in " + self.visit(tree.children[1])
+        return (
+            "exists("
+            + str(tree.children[0])
+            + " in "
+            + self.visit(tree.children[1])
+            + ")"
+        )
 
     def isempty_cond(self, tree):
         return self.visit(tree.children[0]) + " == set()"
@@ -273,6 +279,8 @@ class PyPlanVisitor(Interpreter):
         if tuple_name in self._bound_tuples:
             # NOTE: We need this check because tuple_element_ref can also be used for indexing into types.
             colname = self._bound_tuples[tuple_name].attrs[int(colname)][0]
+        else:
+            colname = f"_{colname}"
 
         return ".".join([tuple_name, colname])
 
