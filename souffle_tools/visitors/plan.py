@@ -84,9 +84,12 @@ class PyPlanVisitor(Interpreter):
         debug_info = ['"""'] + res["x"].split("\n") + ['"""']
 
         plan = self.visit(tree.children[1])
-        # NOTE: We don't need to check if plan is a str, this is guaranteed.
-        plan["l"] = self._safe_prepend(debug_info, plan["l"])
-        return plan
+        if isinstance(plan, str):
+            debug_info.append(plan)
+            return {"l": debug_info, "c": []}
+        else:
+            plan["l"] = self._safe_prepend(debug_info, plan["l"])
+            return plan
 
     def clear_stmt(self, tree) -> str:
         return f"{self.visit(tree.children[0])} = set()"
